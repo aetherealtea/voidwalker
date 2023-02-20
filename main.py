@@ -7,32 +7,141 @@ from PIL import Image
 from pytesseract import image_to_string
 
 from datetime import datetime
+import time
 
 import json
 
+import keyboard  # ! delete
+
 
 logs_dir = '.logs/'
-monitor_size = {'top': 0, 'left': 0, 'width': 0, 'height': 0}
-with open('settings.json') as f:
-    settings = json.load(f)
-
+monitor_size = None
 
 def set_monitor():
+
     "Chooses the monitor to capture from."
+
     monitors = mss().monitors
     print('Monitors detected: {}'.format(len(monitors)))
     for i, monitor in enumerate(monitors):
-        print('{}. {}x{}@{}:{}'.format(i, monitor['width'], monitor['height'], monitor['left'], monitor['top']))
+        print('{}. {}x{}@{};{}'.format(i, monitor['width'], monitor['height'], monitor['left'], monitor['top']))
     monitor = int(input('Choose monitor: '))
+    print('Monitor {} chosen'.format(monitor))
     return monitors[monitor]
 
 
 def capture():
+
     "Captures the screen."
+
     scrennshot = mss().grab(monitor_size)
     img = Image.frombytes('RGB', scrennshot.size, scrennshot.bgra, 'raw', 'BGRX')
-    img.save(logs_dir+datetime.now().strftime("%Y-%m-%d_%H_%M_%S")+'.png') # Save to logs with timestamp
-    print('Screen captured')
+    return img
+
+
+class ApexLegendsAnalyser:
+    
+    def __init__(self):
+        with open("resources/configs/apex.json") as f:
+            self.settings = json.load(f)
+
+    def observe(self):
+
+        "Observs the screen and detects various in-game screen types for further analysis."
+
+        screen_type_buffer = "misc"
+        img_buffer = None
+
+        while True:
+            # Capture screenshot and detect screen type
+            img = capture()
+            screen_type = self.screen_type(img)
+            print(screen_type)
+
+            # If screen type is not misc
+            if screen_type != "misc":
+                # if equal to the previous screen type, find out which one has more info
+                if screen_type == screen_type_buffer:
+                    # if the current one has more info, update the buffer
+                    if self.compare(img, img_buffer):
+                        img_buffer = img
+                else:
+                    # update the buffer, beggining a new comparison chain
+                    screen_type_buffer = screen_type
+                    img_buffer = img
+
+            else:
+                # if the screen type was not misc, send image for data extraction; ideally the image should be the one with the most info
+                if screen_type_buffer != "misc":
+                    # data = self.extract(img_buffer)(img_buffer)
+                    # Save image and data for processing
+                    img_buffer.save(logs_dir + datetime.now().strftime('%Y-%m-%d_%H_%M_%S') + '.png')
+                    print('Saved image to {}'.format(logs_dir + datetime.now().strftime('%Y-%m-%d_%H_%M_%S') + '.png'))
+
+                    screen_type_buffer = "misc"
+                    img_buffer = None
+
+            # Chill for a bit
+            time.sleep(0.1)
+
+            
+    def screen_type(self, img):
+        
+        "Detects the screen type."
+
+        screen_types = self.settings['screens'].keys()
+        detected_screen_type = "misc"
+
+        for screen_type in screen_types:
+            # Compare markers, if all match, return the screen type
+            markers_matched = []
+            for marker in self.settings['screens'][screen_type]['markers']:
+                cropped_roi = np.array(img.crop([marker['roi'][0], marker['roi'][1], marker['roi'][0]+marker['roi'][2], marker['roi'][1]+marker['roi'][3]]))
+                marker_matched = False
+                # Check all of the options provided
+                for marker_img_path in marker['paths']:
+                    marker_img = cv2.imread(marker_img_path)
+                    marker_img = marker_img[:, :, ::-1].copy()
+
+                    if self.mse(cropped_roi, marker_img) < marker['mse_threshold']:
+                        marker_matched = True
+                        break
+                markers_matched.append(marker_matched)
+
+            if all(markers_matched):
+                detected_screen_type = screen_type
+                break
+        
+        return detected_screen_type
+
+
+    def mse(self, img1, img2):
+
+        "Calculates the mean squared error between two images. Sizes must match."
+
+        
+
+        err = np.sum((img1 - img2) ** 2)
+        err /= float(np.prod(img1.shape))
+        return err
+
+
+    def compare(self, img1, img2):
+
+        """
+        Compares two images and returns True if img1 has more info than img2.
+        Currently compares the variance of the images.
+        """
+
+        # Calculate the variance of the images
+        img1_var = np.var(img1)
+        img2_var = np.var(img2)
+
+        # If the variance of img1 is greater than img2, return True
+        if img1_var > img2_var:
+            return True
+        else:
+            return False
 
 
 def analyse(img):
@@ -129,11 +238,8 @@ def exit():
     raise SystemExit(0)
 
 if __name__ == '__main__':
-    # monitor_size = set_monitor()
-    # with keyboard.GlobalHotKeys({
-    #         '<alt>+<ctrl>+p': capture,
-    #         '<alt>+<ctrl>+e': exit}) as h:
-    #     h.join()
-    # print(analyse(Image.open('.logs/2023-02-16_17_46.png')))
-    # print(analyse(Image.open('.logs/2023-02-16_21_16.png')))
-    print(analyse(Image.open('.logs/2023-02-16_21_16.png')))
+
+    monitor_size = set_monitor()
+    screen_analyser = ApexLegendsAnalyser()
+    screen_analyser.observe()
+    
