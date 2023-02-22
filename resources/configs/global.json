@@ -1,0 +1,20 @@
+{
+    "markers": {
+        "frame_type": {
+            "summary": ["eliminated-summary-key", "match-summary-key", "champions-summary-key"]
+        },
+        "layout": {
+            "summary": {
+                "trios":["summary-trios-hint"],
+                "duos": ["summary-duos-hint"]
+                
+            }
+        },
+        "presence": {
+            "summary": {
+                "teammate_a": ["summary-trios-teammate-a", "summary-duos-teammate-a"],
+                "teammate_b": ["summary-trios-teammate-b"]
+            }
+        }
+    }
+}

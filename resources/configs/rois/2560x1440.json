@@ -1,0 +1,143 @@
+{
+    "markers": [
+        {
+            "name": "eliminated-summary-key",
+            "path": "resources/markers/summary/elimination.png",
+            "roi": [1200, 175, 64, 64],
+            "processing": {
+                "grayscale": true,
+                "threshold": 230
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "match-summary-key",
+            "path": "resources/markers/summary/match.png",
+            "roi": [1200, 175, 64, 64],
+            "processing": {
+                "grayscale": true,
+                "threshold": 230
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "champions-summary-key",
+            "path": "resources/markers/summary/champ.png",
+            "roi": [1200, 175, 64, 64],
+            "processing": {
+                "grayscale": true,
+                "threshold": 230
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "summary-duos-hint",
+            "path": "resources/markers/summary/banner_corner_hint.png",
+            "roi": [1136, 325, 64, 64],
+            "processing": {
+                "grayscale": true,
+                "threshold": 150
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "summary-trios-hint",
+            "path": "resources/markers/summary/banner_corner_hint.png",
+            "roi": [935, 325, 64, 64],
+            "processing": {
+                "grayscale": true,
+                "threshold": 150
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "summary-trios-teammate-a",
+            "path": "resources/markers/summary/banner_corner_hint.png",
+            "roi": [136, 325, 64, 64],
+            "processing": {
+                "grayscale": true,
+                "threshold": 150
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "summary-trios-teammate-b",
+            "path": "resources/markers/summary/banner_corner_hint.png",
+            "roi": [1734, 325, 64, 64],
+            "processing": {
+                "grayscale": true,
+                "threshold": 150
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "summary-duos-teammate-a",
+            "path": "resources/markers/summary/banner_corner_hint.png",
+            "roi": [337, 325, 64, 64],
+            "processing": {
+                "grayscale": true,
+                "threshold": 150
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "kills-assists-separator",
+            "path": "resources/markers/summary/k_a_k_separator.png",
+            "match_threshold": 0.9
+        }
+    ],
+    "metrics": {
+        "summary": {
+            "trios": {
+                "player": {
+                    "kills-assists-knocks": [955, 529, 293, 58],
+                    "damage": [962, 634, 200, 54],
+                    "time_survived": [968, 735, 270, 49],
+                    "revive_given": [976, 838, 92, 49],
+                    "respawn_given": [975, 941, 78, 45],
+                    "nickname": [965, 371, 248, 68]
+                },
+                "teammate_a": {
+                    "kills-assists-knocks": [174, 532, 175, 49],
+                    "damage": [174, 636, 141, 45],
+                    "time_survived": [178, 737, 114, 45],
+                    "revive_given": [178, 834, 64, 51],
+                    "respawn_given": [178, 939, 66, 47],
+                    "nickname": [165, 368, 214, 76]
+                },
+                "teammate_b": {
+                    "kills-assists-knocks": [1771, 532, 182, 46],
+                    "damage": [1775, 634, 114, 47],
+                    "time_survived": [1773, 735, 144, 49],
+                    "revive_given": [1777, 832, 61, 51],
+                    "respawn_given": [1771, 936, 82, 50],
+                    "nickname": [1771, 360, 238, 84]
+                },
+                "global": {
+                    "place": [1960, 160, 150, 100]
+                }
+            },
+            "duos": {
+                "player": {
+                    "kills-assists-knocks": [1171, 531, 182, 48],
+                    "damage": [1177, 636, 133, 45],
+                    "time_survived": [1173, 735, 143, 51],
+                    "revive_given": [1175, 838, 86, 45],
+                    "respawn_given": [1177, 938, 81, 56],
+                    "nickname": [1164, 364, 273, 77]
+                },
+                "teammate_a": {
+                    "kills-assists-knocks": [371, 529, 178, 54],
+                    "damage": [377, 636, 136, 45],
+                    "time_survived": [377, 737, 144, 43],
+                    "revive_given": [382, 836, 75, 49],
+                    "respawn_given": [379, 938, 73, 52],
+                    "nickname": [362, 364, 223, 71]
+                },
+                "global": {
+                    "place": [1960, 160, 150, 100]
+                }
+            }
+        }
+    }
+}
