@@ -1,5 +1,6 @@
 from pynput import keyboard
 
+import os
 import numpy as np
 import cv2
 from mss import mss
@@ -81,63 +82,170 @@ class ApexLegendsAnalyser:
 
     def observe(self):
 
-        "Observs the screen and detects various in-game screen types for further analysis."
+        "Observs the screen and tracks various in-game states for further analysis."
 
-        frame_type_buffer = "misc"
-        img_buffer = None
+        ongoing_match = False
+        match_data = {}
+        log_folder = None
+
+        buffer = {
+            'frame_type': "misc",
+            'img': None,
+            'legend_select': {
+                'mode': None,
+                'player': None
+            }
+        }
 
         while True:
             # Capture screenshot and detect screen type
             img = self.capture()
-            frame_type = self.frame_type(img)
+            frame_info = self.frame_info(img)
+            frame_type = frame_info['type']
             # print(frame_type)
+            
+            # Compare screen types and define what to do
+            if frame_type == "start":
+                if not ongoing_match:
+                    # Start a new match
+                    ongoing_match = True
+                    match_data = {
+                        'start_time': datetime.now().strftime('%Y-%m-%d_%H-%M'),
+                    }
+                    log_folder = logs_dir + datetime.now().strftime('%Y-%m-%d_%H-%M') + '/'
+                    os.mkdir(log_folder)
 
-            # If screen type is not misc
-            if frame_type != "misc":
-                # if equal to the previous screen type, find out which one has more info
-                if frame_type == frame_type_buffer:
+                if frame_type != buffer['frame_type']: # if starting screen is occuring for the first time
+                    # Save frame and send for data extraction
+                    img.save(log_folder + 'start.png')
+                    data = self.extract(img, frame_type)
+                    match_data.update(data)
+
+            elif frame_type == "summary":
+                if not ongoing_match:
+                    # Start a new match, however late
+                    ongoing_match = True
+                    match_data = {
+                        'start_time': datetime.now().strftime('%Y-%m-%d_%H-%M'),
+                    }
+                    log_folder = logs_dir + datetime.now().strftime('%Y-%m-%d_%H-%M') + '/'
+                    os.mkdir(log_folder)
+
+                if frame_type == buffer['frame_type']: # if summary screen is reoccuring
                     # if the current one has more info, update the buffer
-                    if self.compare(img, img_buffer):
-                        img_buffer = img
+                    if self.compare(img, buffer['img']):
+                        buffer['img'] = img
                 else:
-                    # update the buffer, beggining a new comparison chain
-                    frame_type_buffer = frame_type
-                    img_buffer = img
+                    # start the buffer, beggining a new comparison chain
+                    buffer['frame_type'] = frame_type
+                    buffer['img'] = img
+
+            elif frame_type == "gameplay":
+                if not ongoing_match:
+                    # Start a new match, however late
+                    ongoing_match = True
+                    match_data = {
+                        'start_time': datetime.now().strftime('%Y-%m-%d_%H-%M'),
+                    }
+                    log_folder = logs_dir + datetime.now().strftime('%Y-%m-%d_%H-%M') + '/'
+                    os.mkdir(log_folder)
+
+            elif frame_type == "legend_select":
+
+                if not ongoing_match:
+                    # Start a new match, however late
+                    ongoing_match = True
+                    match_data = {
+                        'start_time': datetime.now().strftime('%Y-%m-%d_%H-%M'),
+                    }
+                    log_folder = logs_dir + datetime.now().strftime('%Y-%m-%d_%H-%M') + '/'
+                    os.mkdir(log_folder)
+
+                if frame_type == buffer['frame_type']:
+
+                    if frame_info['metadata'].get('mode', None) is not None: # if event is registered
+                        print('event registered')
+                        # if there's no mode in the buffer, update it (first registered mode is kept)
+                        if buffer['legend_select']['mode'] is None:
+                            buffer['legend_select']['mode'] = frame_info['metadata']['mode']
+
+                        # if there's no player in the buffer, update; save the image to be compared later
+                        if buffer['legend_select']['player'] is None:
+                            buffer['legend_select']['player'] = frame_info['metadata']['player']
+                            buffer['img'] = img
+                        # if there's a player in the buffer, select the image with more info
+                        else:
+                            if self.compare(img, buffer['img']):
+                                buffer['img'] = img
+
+                    else:
+                        # if event ended, clear player and send frame for data extraction (the one with more info is meant to be in the buffer)
+                        if buffer['legend_select']['player'] is not None:
+                            buffer['img'].save(log_folder + 'legend_select_{}.png'.format(buffer['legend_select']['player']))
+                            print('data extraction due to event end')
+                            data = self.extract(buffer['img'], frame_type, player = buffer['legend_select']['player'], mode = buffer['legend_select']['mode'])
+                            match_data.update(data)
+                            buffer['legend_select']['player'] = None
+                        
+
 
             else:
-                # if the screen type was not misc, send image for data extraction; ideally the image should be the one with the most info
-                if frame_type_buffer != "misc":
-                    # data = self.extract(img_buffer)
-                    # Save image and data for processing
-                    img_buffer.save(logs_dir + datetime.now().strftime('%Y-%m-%d_%H_%M_%S') + '.png')
-                    print('Saved image to {}'.format(logs_dir + datetime.now().strftime('%Y-%m-%d_%H_%M') + '.png'))
-                    
+                if buffer['frame_type'] == "summary":
+                    # Save frame and send for data extraction
+                    buffer['img'].save(log_folder + 'summary.png')
+                    data = self.extract(buffer['img'], buffer['frame_type'])
+                    match_data.update(data)
 
-                    frame_type_buffer = "misc"
-                    img_buffer = None
+                    # End match
+                    # ! WARNING: This is a temporary solution, it will fail if 
+                    #   - the game is closed before the summary screen is shown
+                    #   - summary screen is shown again (e.g., "exit to lobby" prompt is called multiple times)
+                    # Soltution:
+                    #   - save data on each screen change or frame update
+                    #   - stop match on frames further down the pipeline - breakdown, lobby, etc.
+                    ongoing_match = False
+                    match_data['end_time'] = datetime.now().strftime('%Y-%m-%d_%H-%M')
+
+                    # Save match data
+                    with open(log_folder + 'data.json', 'w') as f:
+                        json.dump(match_data, f, indent=4)
+
+                elif buffer['frame_type'] == "legend_select":
+                    # Save frame and send for data extraction
+                    buffer['img'].save(log_folder + 'legend_select_{}.png'.format(buffer['legend_select']['player']))
+                    print('data extraction due to screen change')
+                    data = self.extract(buffer['img'], buffer['frame_type'], player = buffer['legend_select']['player'], mode = buffer['legend_select']['mode'])
+                    match_data.update(data)
+                    # Clear buffer
+                    buffer['legend_select']['player'] = None
+                    buffer['legend_select']['mode'] = None
+
+            # Update buffer
+            buffer['frame_type'] = frame_type
+            buffer['img'] = img
 
             # Chill for a bit
-            time.sleep(0.1)
+            # time.sleep(1/frame_rate)
 
             
-    def frame_type(self, img) -> str:
+    def frame_info(self, img) -> dict:
         
         """
-        Detects the frame type.
+        Detects the frame type and return type with metadata.
 
         :param img: Image to detect the frame type of.
         :type img: PIL.Image
-        :return: Frame type.
-        :rtype: str
+        :return: Frame type and metadata.
+        :rtype: dict
         """
 
         detected_frame_type = "misc"
 
-        for frame_type in self.settings['global']['markers']['frame_type'].keys():
+        for frame_type in self.settings['global']['markers'].keys():
             # Compare markers, if there is a match, return the screen type
             marker_matched = False
 
-            for marker in self.settings['global']['markers']['frame_type'][frame_type]:
+            for marker in self.settings['global']['markers'][frame_type]['keys']:
                 if self.check_marker(marker, img):
                     marker_matched = True
                     break
@@ -145,8 +253,30 @@ class ApexLegendsAnalyser:
             if marker_matched:
                 detected_frame_type = frame_type
                 break
+
+        if detected_frame_type == "legend_select":
+            # Catch legend select event
+            # Check markers for each player and layout
+            events = self.settings['global']['markers'][detected_frame_type]['events']
+            caught_event = {
+                "mode": None,
+                "hint": None,
+            }
+            for mode in events:
+                for hint, markers in events[mode].items():
+                    for marker in markers:
+                        if self.check_marker(marker, img):
+                            caught_event['mode'] = mode
+                            caught_event['player'] = hint
+                            break
+                    if caught_event['mode'] is not None:
+                        break
+                if caught_event['mode'] is not None:
+                    break
+
+            return {"type": detected_frame_type, "metadata": caught_event}
         
-        return detected_frame_type
+        return {"type": detected_frame_type, "metadata": {}}
 
 
     def mse(self, img1, img2) -> float:
@@ -158,7 +288,6 @@ class ApexLegendsAnalyser:
 
         err = np.sum((img1 - img2) ** 2)
         err /= float(np.prod(img1.shape))
-        print(err)
         return err
 
 
@@ -246,113 +375,212 @@ class ApexLegendsAnalyser:
 
 
 
-    def extract(self, img, frame_type) -> dict:
+    def extract(self, img, frame_type, **kwargs) -> dict:
 
         """
         Extracts data from the frame.
-        Currently only extracts the metrics from the summary screen.
+
+        **kwargs: as of now, used for passing additional hints for "legend_select" frame type to determine which rois to use for data extraction.
+            - "player": player id (str), values: "player1", "player2", "player3"
+            - "mode": mode id (str), values: "duo", "trios"
         
         :param img: Image to extract data from
         :type img: PIL.Image
-        :param frame_type: Type of screen
+        :param frame_type: Type of frame to extract data from
         :type frame_type: str
+        :param kwargs: Additional arguments
+        :type kwargs: dict
         :return: Dictionary of extracted data
         :rtype: dict
         """
 
-        # Identify the layout
-        layout = None
-        for layout_option, layout_info in self.settings['global']['markers']['layout'][frame_type].items():
-            for marker in layout_info:
-                if self.check_marker(marker, img):
-                    layout = layout_option
+        def identify_layout(__img, __frame_type):
+            # Identify the layout
+            layout = None
+            for layout_option, layout_info in self.settings['global']['markers'][__frame_type]['layout'].items():
+                for marker in layout_info:
+                    if self.check_marker(marker, __img):
+                        layout = layout_option
+                        break
+                if layout is not None:
                     break
-            if layout is not None:
-                break
 
-        if layout is None:
-            raise Exception('Could not identify layout')
+            if layout is None:
+                raise Exception('Could not identify layout')
+            return layout
 
-
-        measured_entities = self.settings['rois']['metrics'][frame_type][layout]
-
-        def __bound(img):
+        def __bound(__img):
             # find text and crop excessive borders
-            crop_coords = cv2.boundingRect(img)
-            img = img[(crop_coords[1]):crop_coords[1]+crop_coords[3], crop_coords[0]:crop_coords[0]+crop_coords[2]]
+            crop_coords = cv2.boundingRect(__img)
+            __img = __img[(crop_coords[1]):crop_coords[1]+crop_coords[3], crop_coords[0]:crop_coords[0]+crop_coords[2]]
             # add a bit of padding
-            img = cv2.copyMakeBorder(img, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=[0,0,0])
-            return img
+            __img = cv2.copyMakeBorder(__img, 10, 10, 10, 10, cv2.BORDER_CONSTANT, value=[0,0,0])
+            return __img
+
 
         # Extract metrics
-        extracted_metrics = {}
-        for entity in measured_entities:
+        extracted_data = {}
+        if frame_type == 'summary':
+            # Identify the layout
+            layout = identify_layout(img, frame_type)
+            measured_entities = self.settings['rois']['data'][frame_type][layout]
 
-            extracted_metrics[entity] = {}
+            for entity in measured_entities:
 
-            # Check if the entity is present, continue if not. Player is always present
-            if entity != 'player':
-                if not any([self.check_marker(marker, img) for marker in self.settings['global']['markers']['presence'][frame_type][entity]]):
-                    continue
-            
-            for metric in measured_entities[entity]:
-                # Crop the region of interest
-                roi = self.settings['rois']['metrics'][frame_type][layout][entity][metric]
-                processed_region = img.crop([roi[0], roi[1], roi[0]+roi[2], roi[1]+roi[3]])
+                extracted_data[entity] = {}
 
-                # preprocess image for better OCR
-                processed_region = cv2.cvtColor(np.array(processed_region), cv2.COLOR_BGR2GRAY)
-                _, processed_region = cv2.threshold(processed_region, 100, 255, cv2.THRESH_BINARY)
+                # Check if the entity is present, continue if not. Player and global are always present
+                if entity != 'player' and entity != 'global':
+                    if not any([self.check_marker(marker, img) for marker in self.settings['global']['markers'][frame_type]['presence'][entity]]):
+                        continue
                 
+                for metric in measured_entities[entity]:
+                    # Crop the region of interest
+                    roi = self.settings['rois']['data'][frame_type][layout][entity][metric]
+                    processed_region = img.crop([roi[0], roi[1], roi[0]+roi[2], roi[1]+roi[3]])
+
+                    # Process the image
+                    if metric == "place":
+                        # Filter out the place only, which is written in a specific color
+                        processed_region = np.array(processed_region)
+                        processed_region = cv2.cvtColor(processed_region, cv2.COLOR_RGB2HSV)
+                        filtered_color = np.array([22, 254, 251])
+                        # Create and show a square of the filtered color for debugging
+                        _square = np.zeros((100, 100, 3), np.uint8)
+                        _square[:] = filtered_color
+
+                        processed_region = cv2.inRange(processed_region, filtered_color - 20, filtered_color + 20)
+
+
+                    else:
+                        processed_region = cv2.cvtColor(np.array(processed_region), cv2.COLOR_BGR2GRAY)
+                        _, processed_region = cv2.threshold(processed_region, 100, 255, cv2.THRESH_BINARY)
+                        
+                    processed_region = __bound(processed_region)
+
+                    
+
+                    if metric == 'kills-assists-knocks':
+
+                        # Cut the image in three pieces separated by the slashes (k_a_k_separator marker)
+                        separator_coords = self.find_marker('kills-assists-separator', processed_region)
+                        if len(separator_coords) < 2:
+                            raise Exception('Could not find the separators for kills-assists-knocks')
+                        separator_coords = sorted(separator_coords, key=lambda x: x[0])
+                        separator_coords = [separator_coords[0][0], separator_coords[1][0]]
+                        processed_region = cv2.blur(processed_region, (4,4))
+
+                        # Extract the three pieces
+                        k_a_k = []
+                        margin = 15 # equal to width of the separator
+                        k_a_k.append(processed_region[:, :separator_coords[0]])
+                        k_a_k.append(processed_region[:, separator_coords[0]+margin:separator_coords[1]])
+                        k_a_k.append(processed_region[:, separator_coords[1]+margin:])
+
+                        # Extract the text from each piece
+                        k_a_k = [int(image_to_string(k_a_k[i], config='--psm 10 --oem 3 -c tessedit_char_whitelist=0123456789Oo').replace('\n','').replace('O','0').replace('o','0')) for i in range(3)]
+
+                        extracted_data[entity]['kills'] = k_a_k[0]
+                        extracted_data[entity]['assists'] = k_a_k[1]
+                        extracted_data[entity]['knocks'] = k_a_k[2]
+
+                    else:
+
+                        processed_region = cv2.blur(processed_region, (2,2))
+                        parsed_text = image_to_string(processed_region, config='--psm 8 --oem 3 -c tessedit_char_whitelist=0123456789:Oo#').replace('\n','').replace('O','0').replace('o','0')
+
+                        if metric == 'time_survived':
+                            
+                            # If no text is detected, try again with a different psm
+                            if parsed_text == '':
+                                parsed_text = image_to_string(processed_region, config='--psm 6 --oem 3 -c tessedit_char_whitelist=0123456789:Oo').replace('\n','').replace('O','0').replace('o','0')
+
+                            parsed_text = parsed_text.split(':')
+                            # Fix for when semicolon is not detected
+                            if len(parsed_text) == 1:
+                                parsed_text = [parsed_text[0][:-2], parsed_text[0][-2:]]
+                            extracted_data[entity][metric] = int(parsed_text[0])*60 + int(parsed_text[1])
+
+                            # Sanity check: survived time should not be more than 30 minutes
+                            if extracted_data[entity][metric] > 1800:
+                                # Leave blank, will be filled with NaN during analysis
+                                pass
+
+                        # Overriding text extraction for the nickname
+                        elif metric == 'nickname':
+                            parsed_text = image_to_string(processed_region, config='--psm 6 --oem 3').replace('\n','')
+                            extracted_data[entity][metric] = parsed_text
+
+                        else:
+                            extracted_data[entity][metric] = int(''.join([num for num in parsed_text if num.isdigit()]))
+
+        elif frame_type == 'start':
+            data_to_process = self.settings['rois']['data'][frame_type]
+            for parameter, roi in data_to_process.items():
+                # Crop the region of interest
+                processed_region = img.crop([roi[0], roi[1], roi[0]+roi[2], roi[1]+roi[3]])
+                processed_region = cv2.cvtColor(np.array(processed_region), cv2.COLOR_BGR2GRAY)
+                _, processed_region = cv2.threshold(processed_region, 200, 255, cv2.THRESH_BINARY)
+
+                processed_region = __bound(processed_region)
+                processed_region = cv2.blur(processed_region, (2,2))
+                parsed_text = image_to_string(processed_region, config='--psm 6 --oem 3').replace('\n','').replace(' ', '_').lower()
+
+                parsed_match = None
+                if parameter == 'mode':
+                    available_modes = self.settings['global']['modes']
+                    for mode in available_modes:
+                        if mode[:3] == parsed_text[:3]:
+                            parsed_match = mode
+                            break
+
+                elif parameter == 'map':
+                    available_maps = self.settings['global']['maps']
+                    for _map in available_maps:
+                        if _map[:3] == parsed_text[:3]:
+                            parsed_match = _map
+                            break
+
+
+                extracted_data[parameter] = parsed_match
+
+        elif frame_type == 'legend_select':
+            extracted_data['legends'] = {}
+            mode = kwargs['mode']
+            player = kwargs['player']
+
+            data_to_process = {
+                'legend': self.settings['rois']['data'][frame_type][mode][player]['legend'],
+                'global_legend': self.settings['rois']['data'][frame_type]['global']['legend'],
+                'nickname': self.settings['rois']['data'][frame_type][mode][player]['nickname']
+            }
+
+            for parameter, roi in data_to_process.items():
+                # Crop the region of interest
+                processed_region = img.crop([roi[0], roi[1], roi[0]+roi[2], roi[1]+roi[3]])
+                processed_region = cv2.cvtColor(np.array(processed_region), cv2.COLOR_BGR2GRAY)
+
+                if parameter == 'nickname':
+                    _, processed_region = cv2.threshold(processed_region, 120, 255, cv2.THRESH_BINARY)
+                else:
+                    _, processed_region = cv2.threshold(processed_region, 180, 255, cv2.THRESH_BINARY)
+
                 processed_region = __bound(processed_region)
                 processed_region = cv2.blur(processed_region, (2,2))
 
-                if metric == 'kills-assists-knocks':
-
-                    # Cut the image in three pieces separated by the slashes (k_a_k_separator marker)
-                    separator_coords = self.find_marker('kills-assists-separator', processed_region)
-                    if len(separator_coords) < 2:
-                        raise Exception('Could not find the separators for kills-assists-knocks')
-                    separator_coords = sorted(separator_coords, key=lambda x: x[0])
-                    separator_coords = [separator_coords[0][0], separator_coords[1][0]]
-
-                    # Extract the three pieces
-                    k_a_k = []
-                    margin = 15 # equal to width of the separator
-                    k_a_k.append(processed_region[:, :separator_coords[0]])
-                    k_a_k.append(processed_region[:, separator_coords[0]+margin:separator_coords[1]])
-                    k_a_k.append(processed_region[:, separator_coords[1]+margin:])
-
-                    # Extract the text from each piece
-                    k_a_k = [int(image_to_string(k_a_k[i], config='--psm 10 --oem 3 -c tessedit_char_whitelist=0123456789Oo').replace('\n','').replace('O','0').replace('o','0')) for i in range(3)]
-
-                    extracted_metrics[entity]['kills'] = k_a_k[0]
-                    extracted_metrics[entity]['assists'] = k_a_k[1]
-                    extracted_metrics[entity]['knocks'] = k_a_k[2]
-
+                if parameter == 'nickname':
+                    parsed_text = image_to_string(processed_region, config='--psm 6 --oem 3').replace('\n','')
+                    if parsed_text == '':
+                        return {'legends': {}} # If no nickname is detected, return an empty dict
+                    extracted_data['legends'][parameter] = parsed_text
                 else:
+                    parsed_text = image_to_string(processed_region, config='--psm 6 --oem 3').replace('\n','').replace(' ', '_').lower()
+                    extracted_data['legends']['legend'] = parsed_text if parsed_text in self.settings['global']['legends'] else 'unknown'
+                    
 
-                    parsed_text = image_to_string(processed_region, config='--psm 8 --oem 3 -c tessedit_char_whitelist=0123456789/:Oo').replace('\n','').replace('O','0').replace('o','0')
+                
 
-                    if metric == 'time_survived':
-                        parsed_text = parsed_text.split(':')
-                        extracted_metrics[entity][metric] = int(parsed_text[0])*60 + int(parsed_text[1])
-
-                    # Overriding text extraction for the nickname
-                    elif metric == 'nickname':
-                        parsed_text = image_to_string(processed_region, config='--psm 6 --oem 3').replace('\n','')
-                        extracted_metrics[entity][metric] = parsed_text
-
-                    else:
-                        extracted_metrics[entity][metric] = int(''.join([num for num in parsed_text if num.isdigit()]))
-
-                cv2.imshow('im', processed_region)
-                cv2.waitKey(1000)
-                cv2.destroyAllWindows()
-
-                print()
-
-        return extracted_metrics
+        return extracted_data
 
         
 
@@ -360,10 +588,11 @@ if __name__ == '__main__':
 
     screen_analyser = ApexLegendsAnalyser()
     # screen_analyser.observe()
-    image = Image.open('.logs/2023-02-20_10_24_34.png')
-    frame_type = screen_analyser.frame_type(image)
-    print(frame_type)
-    data = screen_analyser.extract(image, frame_type)
+    image = Image.open('.logs/2023-02-23_01-58/legend_select_player2.png')
+    frame_info = screen_analyser.frame_info(image)
+    print(frame_info['type'])
+    data = screen_analyser.extract(image, frame_info['type'], mode=frame_info['metadata']['mode'], player=frame_info['metadata']['player'])
+    print(data)
     # print(screen_analyser.extract(Image.open('.logs/2023-02-20_12_31_50.png')))
 
     # img = cv2.imread('roi.png')

@@ -84,15 +84,106 @@
             "name": "kills-assists-separator",
             "path": "resources/markers/summary/k_a_k_separator.png",
             "match_threshold": 0.9
+        },
+        {
+            "name": "start-emblem-key",
+            "path": "resources/markers/start/emblem.png",
+            "roi": [46, 104, 120, 124],
+            "processing": {
+                "grayscale": true,
+                "threshold": 230
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "gameplay-key",
+            "path": "resources/markers/game/gameplay-map-hint.png",
+            "roi": [70, 35, 26, 25],
+            "processing": {
+                "grayscale": true,
+                "threshold": 150
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "legend-select-key-mute",
+            "path": "resources/markers/legend_select/select_legend_mute.png",
+            "roi": [2267, 1230, 30, 31],
+            "processing": {
+                "grayscale": true,
+                "threshold": 150
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "legend-select-key-mute-final",
+            "path": "resources/markers/legend_select/select_legend_mute.png",
+            "roi": [2267, 1270, 30, 31],
+            "processing": {
+                "grayscale": true,
+                "threshold": 150
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "legend-select-key-assault",
+            "path": "resources/markers/legend_select/assault_icon.png",
+            "roi": [760, 1074, 39, 39],
+            "processing": {
+                "grayscale": true,
+                "threshold": 150
+            },
+            "match_threshold": 0.01
+        },
+        {
+            "name": "legend-select-p1-hint",
+            "path": "resources/markers/legend_select/legend_select_1_2.png",
+            "roi": [805, 1421, 16, 16],
+            "processing": {
+                "grayscale": true,
+                "threshold": 130
+            },
+            "match_threshold": 0.05
+        },
+        {
+            "name": "legend-select-p1-hint-duos",
+            "path": "resources/markers/legend_select/legend_select_1_2.png",
+            "roi": [1232, 1421, 16, 16],
+            "processing": {
+                "grayscale": true,
+                "threshold": 130
+            },
+            "match_threshold": 0.05
+        },
+        {
+            "name": "legend-select-p2-hint",
+            "path": "resources/markers/legend_select/legend_select_1_2.png",
+            "roi": [1658, 1421, 16, 16],
+            "processing": {
+                "grayscale": true,
+                "threshold": 130
+            },
+            "match_threshold": 0.06
+        },
+        {
+            "name": "legend-select-p3-hint",
+            "path": "resources/markers/legend_select/legend_select_3.png",
+            "roi": [2544, 1421, 16, 16],
+            "processing": {
+                "grayscale": true,
+                "threshold": 130
+            },
+            "match_threshold": 0.05
         }
+
     ],
-    "metrics": {
+    "data": {
         "summary": {
             "trios": {
                 "player": {
                     "kills-assists-knocks": [955, 529, 293, 58],
                     "damage": [962, 634, 200, 54],
-                    "time_survived": [968, 735, 270, 49],
+                    "time_survived": [968, 735, 150, 49],
                     "revive_given": [976, 838, 92, 49],
                     "respawn_given": [975, 941, 78, 45],
                     "nickname": [965, 371, 248, 68]
@@ -111,10 +202,10 @@
                     "time_survived": [1773, 735, 144, 49],
                     "revive_given": [1777, 832, 61, 51],
                     "respawn_given": [1771, 936, 82, 50],
-                    "nickname": [1771, 360, 238, 84]
+                    "nickname": [1771, 360, 214, 84]
                 },
                 "global": {
-                    "place": [1960, 160, 150, 100]
+                    "place": [1900, 160, 210, 100]
                 }
             },
             "duos": {
@@ -135,9 +226,44 @@
                     "nickname": [362, 364, 223, 71]
                 },
                 "global": {
-                    "place": [1960, 160, 150, 100]
+                    "place": [1900, 160, 210, 100]
                 }
+            }
+        },
+        "start": {
+            "mode": [172, 75, 256, 185],
+            "map": [180, 256, 256, 69]
+        },
+        "legend_select": {
+            "trios": {
+                "player1": {
+                    "nickname": [286, 1382, 264, 27],
+                    "legend": [286, 1346, 264, 34]
+                },
+                "player2": {
+                    "nickname": [1120, 1382, 263, 29],
+                    "legend": [1120, 1346, 263, 34]
+                },
+                "player3": {
+                    "nickname": [1966, 1378, 263, 33],
+                    "legend": [1966, 1346, 263, 34]
+                }
+            },
+            "duos": {
+                "player1": {
+                    "nickname": [474, 1382, 292, 29],
+                    "legend": [474, 1346, 292, 34]
+                },
+                "player3": {
+                    "nickname": [1755, 1385, 225, 26],
+                    "legend": [1755, 1346, 225, 34]
+                }
+            },
+            "global": {
+                "legend": [1725, 303, 760, 109]
             }
         }
     }
+    
 }
+
