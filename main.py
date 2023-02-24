@@ -197,11 +197,16 @@ class ApexLegendsAnalyser:
                     # Join summary data with legends data
                     if match_data['player']['nickname'] != self.settings['user']['name']:
                         print('Nickname mismatch! ({} != {})'.format(match_data['player']['nickname'], self.settings['user']['name']))
-                    nickname2player = {
-                        match_data['player']['nickname']: 'player',
-                        match_data['teammate_a']['nickname']: 'teammate_a',
-                        match_data['teammate_b']['nickname']: 'teammate_b'
-                    }
+                    nickname2player = {}
+                    nickname2player[match_data['player']['nickname']] = 'player'
+                    try:
+                        nickname2player[match_data['teammate_a']['nickname']] = 'teammate_a'
+                    except:
+                        pass
+                    try:
+                        nickname2player[match_data['teammate_b']['nickname']] = 'teammate_b'
+                    except:
+                        pass
                     for entry in match_data['legends']:
                         # Define what nickname corresponds to what teammate using levenshtein distance
                         # This is done due to possible differences in nickname recognition between summary and legend_select screens
