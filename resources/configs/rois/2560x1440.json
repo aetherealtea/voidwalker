@@ -136,44 +136,8 @@
             "match_threshold": 0.01
         },
         {
-            "name": "legend-select-p1-hint",
-            "path": "resources/markers/legend_select/legend_select_1_2.png",
-            "roi": [805, 1421, 16, 16],
-            "processing": {
-                "grayscale": true,
-                "threshold": 130
-            },
-            "match_threshold": 0.05
-        },
-        {
-            "name": "legend-select-p1-hint-duos",
-            "path": "resources/markers/legend_select/legend_select_1_2.png",
-            "roi": [1232, 1421, 16, 16],
-            "processing": {
-                "grayscale": true,
-                "threshold": 130
-            },
-            "match_threshold": 0.05
-        },
-        {
-            "name": "legend-select-p2-hint",
-            "path": "resources/markers/legend_select/legend_select_1_2.png",
-            "roi": [1658, 1421, 16, 16],
-            "processing": {
-                "grayscale": true,
-                "threshold": 130
-            },
-            "match_threshold": 0.06
-        },
-        {
-            "name": "legend-select-p3-hint",
-            "path": "resources/markers/legend_select/legend_select_3.png",
-            "roi": [2544, 1421, 16, 16],
-            "processing": {
-                "grayscale": true,
-                "threshold": 130
-            },
-            "match_threshold": 0.05
+            "name": "legend-select-layout",
+            "roi": [0, 1339, 2560, 1]
         }
 
     ],
@@ -258,10 +222,14 @@
                     "nickname": [1755, 1385, 225, 26],
                     "legend": [1755, 1346, 225, 34]
                 }
-            },
-            "global": {
-                "legend": [1725, 303, 760, 109]
             }
+        }
+    },
+
+    "special": {
+        "player_skin_patches": {
+            "trios": [1291, 624, 228, 135],
+            "duos": [1492, 624, 228, 135]
         }
     }
     

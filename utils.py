@@ -14,9 +14,9 @@ def select_roi(img):
 
 def save_roi(img, roi):
     # Save selected region
-    processed_region = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
-    _, processed_region = cv2.threshold(processed_region, 150, 255, cv2.THRESH_BINARY)
-    cv2.imwrite('roi.png', processed_region[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]])
+    # processed_region = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
+    # _, processed_region = cv2.threshold(processed_region, 150, 255, cv2.THRESH_BINARY)
+    cv2.imwrite('roi.png', img[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]])
 
 def find_marker_coords(marker, source, roi):
     "Find marker in the region"
@@ -41,7 +41,7 @@ def find_marker_coords(marker, source, roi):
     
 
 if __name__ == '__main__':
-    img = cv2.imread('.logs/image_2023-02-23_01-09-03.png')
+    img = cv2.imread('.logs/2023-02-23_20-16/summary.png')
     # img, roi = img, (2544, 1421, 16, 16)
 
     # processed_region = img[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]]
@@ -56,12 +56,12 @@ if __name__ == '__main__':
 
     # cv2.imwrite('resources/markers/start/mode_limiter.png', processed_region)
 
-    img, roi = select_roi(img)
-    # save_roi(img, roi)
+    # img, roi = select_roi(img)
+    save_roi(img, (1492, 624, 228, 135))
 
-    # marker = cv2.imread('resources/markers/legend_select/select_legend_mute.png')
-    # source = cv2.imread('.logs/image_2023-02-22_22-15-28.png')
-    # roi = (2153, 1162, 251, 255)
+    # marker = cv2.imread('resources/markers/summary/skins/wattson/lightning_spirit.png')
+    # source = cv2.imread('.logs/2023-02-23_20-16/summary.png')
+    # roi = (0, 0, 2560, 1440)
 
     # coords = find_marker_coords(marker, source, roi)
     # print(coords)

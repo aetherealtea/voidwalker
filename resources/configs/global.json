@@ -19,17 +19,7 @@
         },
         "legend_select": {
             "keys": ["legend-select-key-mute", "legend-select-key-mute-final", "legend-select-key-assault"],
-            "events": {
-                "trios": {
-                    "player1": ["legend-select-p1-hint"],
-                    "player2": ["legend-select-p2-hint"],
-                    "player3": ["legend-select-p3-hint"]
-                },
-                "duos": {
-                    "player1": ["legend-select-p1-hint-duos"],
-                    "player3": ["legend-select-p3-hint"]
-                }
-            }
+            "layout": "legend-select-layout"
         }
     },
     "modes": ["trios", "duos", "ranked"],
@@ -58,5 +48,12 @@
         "newcastle",
         "vantage",
         "catalyst"
-    ]
+    ],
+
+    "special": {
+        "player_skin_patches": {
+            "wattson": "resources/markers/summary/skins/wattson"
+        }
+    },
+    "matches_stats_file": "resources/matches_stats.csv"
 }

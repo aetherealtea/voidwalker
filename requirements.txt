@@ -5,3 +5,4 @@ mss
 Pillow
 pynput
 pytesseract
+levenshtein
