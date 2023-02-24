@@ -194,28 +194,29 @@ class ApexLegendsAnalyser:
                     ongoing_match = False
                     match_data['end_time'] = datetime.now().strftime('%Y-%m-%d_%H-%M')
 
-                    # Join summary data with legends data
-                    if match_data['player']['nickname'] != self.settings['user']['name']:
-                        print('Nickname mismatch! ({} != {})'.format(match_data['player']['nickname'], self.settings['user']['name']))
-                    nickname2player = {}
-                    nickname2player[match_data['player']['nickname']] = 'player'
-                    try:
-                        nickname2player[match_data['teammate_a']['nickname']] = 'teammate_a'
-                    except:
-                        pass
-                    try:
-                        nickname2player[match_data['teammate_b']['nickname']] = 'teammate_b'
-                    except:
-                        pass
-                    for entry in match_data['legends']:
-                        # Define what nickname corresponds to what teammate using levenshtein distance
-                        # This is done due to possible differences in nickname recognition between summary and legend_select screens
+                    # Join summary data with legends data if present
+                    if 'legends' in match_data.keys():
+                        if match_data['player']['nickname'] != self.settings['user']['name']:
+                            print('Nickname mismatch! ({} != {})'.format(match_data['player']['nickname'], self.settings['user']['name']))
+                        nickname2player = {}
+                        nickname2player[match_data['player']['nickname']] = 'player'
+                        try:
+                            nickname2player[match_data['teammate_a']['nickname']] = 'teammate_a'
+                        except:
+                            pass
+                        try:
+                            nickname2player[match_data['teammate_b']['nickname']] = 'teammate_b'
+                        except:
+                            pass
+                        for entry in match_data['legends']:
+                            # Define what nickname corresponds to what teammate using levenshtein distance
+                            # This is done due to possible differences in nickname recognition between summary and legend_select screens
 
-                        # Get the nickname with the smallest levenshtein distance
-                        nickname = min(nickname2player.keys(), key=lambda x: levenshtein_distance(x, entry['nickname']))
+                            # Get the nickname with the smallest levenshtein distance
+                            nickname = min(nickname2player.keys(), key=lambda x: levenshtein_distance(x, entry['nickname']))
 
-                        # Write legend data to the corresponding teammate
-                        match_data[nickname2player[nickname]]['legend'] = entry['legend']
+                            # Write legend data to the corresponding teammate
+                            match_data[nickname2player[nickname]]['legend'] = entry['legend']
                     
                     # Add skin info to player if present
                     if 'skin' in match_data:
@@ -459,6 +460,9 @@ class ApexLegendsAnalyser:
                         
 
                         if metric == 'kills-assists-knocks':
+                            extracted_data[entity]['kills'] = None
+                            extracted_data[entity]['assists'] = None
+                            extracted_data[entity]['knocks'] = None
 
                             # Try processing metrics separatly first
                             # Cut the image in three pieces separated by the slashes (k_a_k_separator marker)
@@ -477,11 +481,19 @@ class ApexLegendsAnalyser:
                                 k_a_k.append(processed_region[:, separator_coords[1]+margin:])
 
                                 # Extract the text from each piece
-                                k_a_k = [int(image_to_string(k_a_k[i], config='--psm 10 --oem 3 -c tessedit_char_whitelist=0123456789Oo').replace('\n','').replace('O','0').replace('o','0')) for i in range(3)]
+                                k_a_k_metrics = []
+                                for piece in k_a_k:
+                                    try:
+                                        k_a_k_metric = image_to_string(piece, config='--psm 10 --oem 3 -c tessedit_char_whitelist=0123456789Oo').replace('\n','').replace('O','0').replace('o','0')
+                                        if k_a_k_metric == '':
+                                            k_a_k_metric = image_to_string(piece, config='--psm 8 --oem 3 -c tessedit_char_whitelist=0123456789Oo').replace('\n','').replace('O','0').replace('o','0')
+                                        k_a_k_metrics.append(int(k_a_k_metric))
+                                    except:
+                                        k_a_k_metrics.append(None)
 
-                                extracted_data[entity]['kills'] = k_a_k[0]
-                                extracted_data[entity]['assists'] = k_a_k[1]
-                                extracted_data[entity]['knocks'] = k_a_k[2]
+                                extracted_data[entity]['kills'] = k_a_k_metrics[0]
+                                extracted_data[entity]['assists'] = k_a_k_metrics[1]
+                                extracted_data[entity]['knocks'] = k_a_k_metrics[2]
 
                             else:
                                 # If the separator is not detected, try parsing the whole text
@@ -663,12 +675,12 @@ class ApexLegendsAnalyser:
 if __name__ == '__main__':
 
     screen_analyser = ApexLegendsAnalyser()
-    screen_analyser.observe()
-    # image = Image.open('.logs/2023-02-23_22-31/summary.png')
-    # frame_info = screen_analyser.frame_info(image)
+    # screen_analyser.observe()
+    image = Image.open('.logs/2023-02-23_23-46/summary.png')
+    frame_info = screen_analyser.frame_info(image)
     # print(frame_info['type'])
-    # data = screen_analyser.extract(image, frame_info['type'])
-    # print(data)
+    data = screen_analyser.extract(image, frame_info['type'])
+    print(data)
 
     # skin = screen_analyser.get_skin(image)
     # print(skin)
