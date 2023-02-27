@@ -217,6 +217,10 @@ class ApexLegendsAnalyser:
 
                             # Write legend data to the corresponding teammate
                             match_data[nickname2player[nickname]]['legend'] = entry['legend']
+
+                            # If nickname is 'Unknown', use the one from legend_select screen
+                            if nickname == 'Unknown':
+                                match_data[nickname2player[nickname]]['nickname'] = entry['nickname']
                     
                     # Add skin info to player if present
                     if 'skin' in match_data:
@@ -675,12 +679,12 @@ class ApexLegendsAnalyser:
 if __name__ == '__main__':
 
     screen_analyser = ApexLegendsAnalyser()
-    # screen_analyser.observe()
-    image = Image.open('.logs/2023-02-23_23-46/summary.png')
-    frame_info = screen_analyser.frame_info(image)
+    screen_analyser.observe()
+    # image = Image.open('.logs/2023-02-23_23-46/summary.png')
+    # frame_info = screen_analyser.frame_info(image)
     # print(frame_info['type'])
-    data = screen_analyser.extract(image, frame_info['type'])
-    print(data)
+    # data = screen_analyser.extract(image, frame_info['type'])
+    # print(data)
 
     # skin = screen_analyser.get_skin(image)
     # print(skin)
