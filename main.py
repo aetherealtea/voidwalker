@@ -488,7 +488,10 @@ class ApexLegendsAnalyser:
                                 k_a_k_metrics = []
                                 for piece in k_a_k:
                                     try:
-                                        k_a_k_metric = image_to_string(piece, config='--psm 10 --oem 3 -c tessedit_char_whitelist=0123456789Oo').replace('\n','').replace('O','0').replace('o','0')
+                                        k_a_k_metric = image_to_string(piece, config='--psm 10 --oem 3').replace('\n','').replace('O','0').replace('o','0').replace('g', '9')
+                                        k_a_k_metric = ''.join([i for i in k_a_k_metric if i.isdigit()])
+                                        if k_a_k_metric == '':
+                                            k_a_k_metric = image_to_string(piece, config='--psm 10 --oem 3 -c tessedit_char_whitelist=0123456789Oo').replace('\n','').replace('O','0').replace('o','0')
                                         if k_a_k_metric == '':
                                             k_a_k_metric = image_to_string(piece, config='--psm 8 --oem 3 -c tessedit_char_whitelist=0123456789Oo').replace('\n','').replace('O','0').replace('o','0')
                                         k_a_k_metrics.append(int(k_a_k_metric))
@@ -671,7 +674,11 @@ class ApexLegendsAnalyser:
         return skin
 
 
-
+def test_parser(path, frame_type):
+    screen_analyser = ApexLegendsAnalyser()
+    image = Image.open(path)
+    data = screen_analyser.extract(image, frame_type)
+    print(data)
         
 
 
@@ -680,11 +687,3 @@ if __name__ == '__main__':
 
     screen_analyser = ApexLegendsAnalyser()
     screen_analyser.observe()
-    # image = Image.open('.logs/2023-02-23_23-46/summary.png')
-    # frame_info = screen_analyser.frame_info(image)
-    # print(frame_info['type'])
-    # data = screen_analyser.extract(image, frame_info['type'])
-    # print(data)
-
-    # skin = screen_analyser.get_skin(image)
-    # print(skin)
