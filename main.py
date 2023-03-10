@@ -681,9 +681,68 @@ def test_parser(path, frame_type):
     print(data)
         
 
+def data_to_csv(ts_start, ts_end, match_data_path, csv_path):
+    """
+    Converts the json data entries for each match into a single csv file
+
+    :param ts_start: Timestamp of the first match
+    :param ts_end: Timestamp of the last match
+    :param match_data_path: Path to the folder containing the match data
+    :param csv_path: Path to the csv file to be created
+    """
+
+    def validate_timestamp(ts):
+        try:
+            datetime.strptime(ts, '%Y-%m-%d_%H-%M')
+            return True
+        except:
+            return False
+
+    # List subfolders in the match data folder, filter out dirs with timestamp-like name
+    match_dirs = [f for f in os.listdir(match_data_path) if os.path.isdir(os.path.join(match_data_path, f)) and validate_timestamp(f)]
+
+    # Filter dirs to match range
+    match_dirs = [f for f in match_dirs if ts_start <= f <= ts_end]
+
+    # Gather all data from the match dirs
+    data = []
+    for match_dir in match_dirs:
+        with open(os.path.join(match_data_path, match_dir, 'data.json')) as f:
+            data.append(json.load(f))
+
+    # Create a dataframe from the data, unpacking players' data
+    df = pd.DataFrame(
+        columns=[
+            'index',
+            'start_time', 'mode', 'map', 'place', 'duration',
+            'nickname', 'legend', 'skin', 'kills', 'assists', 'knocks', 'damage', 'time_survived', 'revive_given', 'respawn_given',
+        ]
+    )
+    ix_counter = 0
+    for match in data:
+        for player in ['player', 'teammate_a', 'teammate_b']:
+            if player not in match.keys():
+                continue
+            entry = {}
+            entry['index'] = ix_counter
+            entry['start_time'] = datetime.strptime(match['start_time'], '%Y-%m-%d_%H-%M')
+            entry['mode'] = match['mode']
+            entry['map'] = match['map']
+            entry['place'] = match['global']['place']
+            entry['duration'] = (datetime.strptime(match['end_time'], '%Y-%m-%d_%H-%M') - datetime.strptime(match['start_time'], '%Y-%m-%d_%H-%M')).total_seconds()/60
+            for k, v in match[player].items():
+                entry[k] = v
+            df = df.append(entry, ignore_index=True)
+        ix_counter += 1
+
+    # Save the dataframe to csv
+    df.to_csv(csv_path, index=False)
+
 
 
 if __name__ == '__main__':
 
     screen_analyser = ApexLegendsAnalyser()
     screen_analyser.observe()
+
+    # data_to_csv('2023-03-02', '2023-03-03', '.logs/', 'matches.csv')
