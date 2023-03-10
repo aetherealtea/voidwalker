@@ -24,7 +24,7 @@ Limitations:
 
  ## How it works
 
-The script uses the `pyautogui` library to capture the screen, `opencv` library to do the screen processing (detecting screen types and selecting rois) and the `pytesseract` library to extract the text from the screen. The screens are detected by comparing 'markers' (certain cropped regions of the screen that are unique for each screen type) with the current screen. The markers are stored in the `/resources/markers` folder.
+The script uses the `mss` library to capture the screen, `opencv` library to do the screen processing (detecting screen types and selecting rois) and the `pytesseract` library to extract the text from the screen. The screens are detected by comparing 'markers' (certain cropped regions of the screen that are unique for each screen type) with the current screen. The markers are stored in the `/resources/markers` folder.
 
 
 ## Future plans
