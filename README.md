@@ -32,7 +32,7 @@ The script uses the `mss` library to capture the screen, `opencv` library to do 
 - Fine-tune the tessaract OCR to raise the accuracy of the text extraction
 - Link the screen capture to the particular window
 - Track the entire match and extract metrics such as incoming damage, weapons used, accuracy, ping, etc.
-- Make the script resolition-independent
+- Make the script resolution-independent
 - Add GUI
 
 ## Known issues
