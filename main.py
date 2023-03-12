@@ -594,7 +594,7 @@ class ApexLegendsAnalyser:
             else: # Layout unknown, further processing is not possible
                 return extracted_data
 
-            # For each player in the layout, attempt extractin nickname and legend
+            # For each player in the layout, attempt extracting nickname and legend
             for player, rois in self.settings['rois']['data'][frame_type][layout].items():
                 player_data = {'nickname': None, 'legend': None}
                 for parameter, roi in rois.items():
@@ -621,7 +621,8 @@ class ApexLegendsAnalyser:
                         else:
                             continue
                 
-                extracted_data['legends'].append(player_data)
+                if player_data['nickname'] is not None and player_data['legend'] is not None:
+                    extracted_data['legends'].append(player_data)
                     
 
                 
