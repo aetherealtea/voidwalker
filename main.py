@@ -110,7 +110,7 @@ class ApexLegendsAnalyser:
                 if not self.match_tracking_data['is_match_ongoing']:
                     self.on_match_start()
 
-                if frame_type != self.match_tracking_data['frame_buffer']['frame_type']['type']: # if starting screen is occuring for the first time
+                if frame_type != self.match_tracking_data['frame_buffer']['type']: # if starting screen is occuring for the first time
                     # Save frame and send for data extraction
                     img.save(self.match_tracking_data['logs_dir'] + 'start.png')
                     data = self.extract(img, frame_type)
@@ -120,13 +120,13 @@ class ApexLegendsAnalyser:
                 if not self.match_tracking_data['is_match_ongoing']:
                     self.on_match_start()
 
-                if frame_type == self.match_tracking_data['frame_buffer']['frame_type']['type']: # if summary screen is reoccuring
+                if frame_type == self.match_tracking_data['frame_buffer']['type']: # if summary screen is reoccuring
                     # if the current one has more info, update the buffer
                     if self.compare(img, self.match_tracking_data['frame_buffer']['img']):
                         self.match_tracking_data['frame_buffer']['img'] = img
                 else:
                     # start the buffer, beggining a new comparison chain
-                    self.match_tracking_data['frame_buffer']['frame_type']['type'] = frame_type
+                    self.match_tracking_data['frame_buffer']['type'] = frame_type
                     self.match_tracking_data['frame_buffer']['img'] = img
 
             elif frame_type == "gameplay":
@@ -144,7 +144,7 @@ class ApexLegendsAnalyser:
                         
 
             else:
-                if self.match_tracking_data['frame_buffer']['frame_type']['type'] == "summary":
+                if self.match_tracking_data['frame_buffer']['type'] == "summary":
                     # Save frame and send for data extraction
                     self.match_tracking_data['frame_buffer']['img'].save(self.match_tracking_data['logs_dir'] + 'summary.png')
                     data = self.extract(self.match_tracking_data['frame_buffer']['img'], self.match_tracking_data['frame_buffer']['type'])
@@ -169,14 +169,14 @@ class ApexLegendsAnalyser:
                     #   - stop match on frames further down the pipeline - breakdown, lobby, etc.
                     self.on_match_end()
 
-                elif self.match_tracking_data['frame_buffer']['frame_type']['type'] == "legend_select":
+                elif self.match_tracking_data['frame_buffer']['type'] == "legend_select":
                     # Save frame and send for data extraction
                     self.match_tracking_data['frame_buffer']['img'].save(self.match_tracking_data['logs_dir'] + 'legend_select.png')
                     data = self.extract(self.match_tracking_data['frame_buffer']['img'], self.match_tracking_data['frame_buffer']['type'])
                     self.match_tracking_data['match_data'].update(data)
 
             # Update buffer
-            self.match_tracking_data['frame_buffer']['frame_type']['type'] = frame_type
+            self.match_tracking_data['frame_buffer']['type'] = frame_type
 
             # Save match data
             if self.match_tracking_data['is_match_ongoing']:
