@@ -18,7 +18,6 @@ import json
 import keyboard  # ! delete
 
 
-
 logs_dir = '.logs/'
 
 
@@ -26,6 +25,8 @@ class ApexLegendsAnalyser:
 
     monitor = None
     settings = {}
+    
+    match_tracking_data = {}
 
     def __init__(self):
 
@@ -57,6 +58,16 @@ class ApexLegendsAnalyser:
         for marker in self.settings['rois']['markers']:
             self.settings['markers'][marker['name']] = marker
 
+        # Set up match tracking data
+        self.match_tracking_data['is_match_ongoing'] = False
+        self.match_tracking_data['logs_dir'] = None
+        self.match_tracking_data['match_data'] = {}
+        self.match_tracking_data['frame_buffer'] = {
+            'type': "misc",
+            'img': None
+        }
+
+
 
     def save_settings(self):
         with open("resources/configs/user.json", "w") as f:
@@ -87,15 +98,6 @@ class ApexLegendsAnalyser:
 
         "Observs the screen and tracks various in-game states for further analysis."
 
-        ongoing_match = False
-        match_data = {}
-        log_folder = None
-
-        buffer = {
-            'frame_type': "misc",
-            'img': None
-        }
-
         while True:
             # Capture screenshot and detect screen type
             img = self.capture()
@@ -105,83 +107,57 @@ class ApexLegendsAnalyser:
             
             # Compare screen types and define what to do
             if frame_type == "start":
-                if not ongoing_match:
-                    # Start a new match
-                    ongoing_match = True
-                    match_data = {
-                        'start_time': datetime.now().strftime('%Y-%m-%d_%H-%M'),
-                        'processed': False
-                    }
-                    log_folder = logs_dir + datetime.now().strftime('%Y-%m-%d_%H-%M') + '/'
-                    os.mkdir(log_folder)
+                if not self.match_tracking_data['is_match_ongoing']:
+                    self.on_match_start()
 
-                if frame_type != buffer['frame_type']: # if starting screen is occuring for the first time
+                if frame_type != self.match_tracking_data['frame_buffer']['frame_type']['type']: # if starting screen is occuring for the first time
                     # Save frame and send for data extraction
-                    img.save(log_folder + 'start.png')
+                    img.save(self.match_tracking_data['logs_dir'] + 'start.png')
                     data = self.extract(img, frame_type)
-                    match_data.update(data)
+                    self.match_tracking_data['match_data'].update(data)
 
             elif frame_type == "summary":
-                if not ongoing_match:
-                    # Start a new match, however late
-                    ongoing_match = True
-                    match_data = {
-                        'start_time': datetime.now().strftime('%Y-%m-%d_%H-%M'),
-                        'processed': False
-                    }
-                    log_folder = logs_dir + datetime.now().strftime('%Y-%m-%d_%H-%M') + '/'
-                    os.mkdir(log_folder)
+                if not self.match_tracking_data['is_match_ongoing']:
+                    self.on_match_start()
 
-                if frame_type == buffer['frame_type']: # if summary screen is reoccuring
+                if frame_type == self.match_tracking_data['frame_buffer']['frame_type']['type']: # if summary screen is reoccuring
                     # if the current one has more info, update the buffer
-                    if self.compare(img, buffer['img']):
-                        buffer['img'] = img
+                    if self.compare(img, self.match_tracking_data['frame_buffer']['img']):
+                        self.match_tracking_data['frame_buffer']['img'] = img
                 else:
                     # start the buffer, beggining a new comparison chain
-                    buffer['frame_type'] = frame_type
-                    buffer['img'] = img
+                    self.match_tracking_data['frame_buffer']['frame_type']['type'] = frame_type
+                    self.match_tracking_data['frame_buffer']['img'] = img
 
             elif frame_type == "gameplay":
-                if not ongoing_match:
+                if not self.match_tracking_data['is_match_ongoing']:
                     # Start a new match, however late
-                    ongoing_match = True
-                    match_data = {
-                        'start_time': datetime.now().strftime('%Y-%m-%d_%H-%M'),
-                        'processed': False
-                    }
-                    log_folder = logs_dir + datetime.now().strftime('%Y-%m-%d_%H-%M') + '/'
-                    os.mkdir(log_folder)
+                    self.on_match_start()
 
             elif frame_type == "legend_select":
 
-                if not ongoing_match:
+                if not self.match_tracking_data['is_match_ongoing']:
                     # Start a new match, however late
-                    ongoing_match = True
-                    match_data = {
-                        'start_time': datetime.now().strftime('%Y-%m-%d_%H-%M'),
-                        'processed': False
-                    }
-                    log_folder = logs_dir + datetime.now().strftime('%Y-%m-%d_%H-%M') + '/'
-                    os.mkdir(log_folder)
+                    self.on_match_start()
 
-                buffer['img'] = img
+                self.match_tracking_data['frame_buffer']['img'] = img
                         
 
             else:
-                if buffer['frame_type'] == "summary":
+                if self.match_tracking_data['frame_buffer']['frame_type']['type'] == "summary":
                     # Save frame and send for data extraction
-                    buffer['img'].save(log_folder + 'summary.png')
-                    data = self.extract(buffer['img'], buffer['frame_type'])
-                    match_data.update(data)
+                    self.match_tracking_data['frame_buffer']['img'].save(self.match_tracking_data['logs_dir'] + 'summary.png')
+                    data = self.extract(self.match_tracking_data['frame_buffer']['img'], self.match_tracking_data['frame_buffer']['type'])
+                    self.match_tracking_data['match_data'].update(data)
 
                     # ! Specific analysis for summary screen. This should be removed or replaced with a more general solution
                     # If player played wattson, try recognizing and saving the skin
                     username = self.settings['user']['name']
-                    for entry in match_data['legends']:
+                    for entry in self.match_tracking_data['match_data']['legends']:
                         if entry['nickname'] == username and entry['legend'] == 'wattson':
-                            skin = self.__skin_recog(buffer['img'])
+                            skin = self.__skin_recog(self.match_tracking_data['frame_buffer']['img'])
                             if skin != None:
-                                match_data['skin'] = skin
+                                self.match_tracking_data['match_data']['skin'] = skin
 
 
                     # End match
@@ -191,70 +167,89 @@ class ApexLegendsAnalyser:
                     # Soltution:
                     #   - save data on each screen change or frame update
                     #   - stop match on frames further down the pipeline - breakdown, lobby, etc.
-                    ongoing_match = False
-                    match_data['end_time'] = datetime.now().strftime('%Y-%m-%d_%H-%M')
+                    self.on_match_end()
 
-                    # Join summary data with legends data if present
-                    if 'legends' in match_data.keys():
-                        if match_data['player']['nickname'] != self.settings['user']['name']:
-                            print('Nickname mismatch! ({} != {})'.format(match_data['player']['nickname'], self.settings['user']['name']))
-                        nickname2player = {}
-                        nickname2player[match_data['player']['nickname']] = 'player'
-                        try:
-                            nickname2player[match_data['teammate_a']['nickname']] = 'teammate_a'
-                        except:
-                            pass
-                        try:
-                            nickname2player[match_data['teammate_b']['nickname']] = 'teammate_b'
-                        except:
-                            pass
-                        for entry in match_data['legends']:
-                            # Define what nickname corresponds to what teammate using levenshtein distance
-                            # This is done due to possible differences in nickname recognition between summary and legend_select screens
-
-                            # Get the nickname with the smallest levenshtein distance
-                            nickname = min(nickname2player.keys(), key=lambda x: levenshtein_distance(x, entry['nickname']))
-
-                            # Write legend data to the corresponding teammate
-                            match_data[nickname2player[nickname]]['legend'] = entry['legend']
-
-                            # If nickname is 'Unknown', use the one from legend_select screen
-                            if nickname == 'Unknown':
-                                match_data[nickname2player[nickname]]['nickname'] = entry['nickname']
-                    
-                    # Add skin info to player if present
-                    if 'skin' in match_data:
-                        match_data['player']['skin'] = match_data['skin']
-                        del match_data['skin']
-
-                    # Remove legends data
-                    del match_data['legends']
-
-                    match_data['processed'] = True
-
-
-
-                    # Save match data
-                    with open(log_folder + 'data.json', 'w') as f:
-                        json.dump(match_data, f, indent=4)
-
-                elif buffer['frame_type'] == "legend_select":
+                elif self.match_tracking_data['frame_buffer']['frame_type']['type'] == "legend_select":
                     # Save frame and send for data extraction
-                    buffer['img'].save(log_folder + 'legend_select.png')
-                    data = self.extract(buffer['img'], buffer['frame_type'])
-                    match_data.update(data)
+                    self.match_tracking_data['frame_buffer']['img'].save(self.match_tracking_data['logs_dir'] + 'legend_select.png')
+                    data = self.extract(self.match_tracking_data['frame_buffer']['img'], self.match_tracking_data['frame_buffer']['type'])
+                    self.match_tracking_data['match_data'].update(data)
 
             # Update buffer
-            buffer['frame_type'] = frame_type
+            self.match_tracking_data['frame_buffer']['frame_type']['type'] = frame_type
 
             # Save match data
-            if ongoing_match:
-                with open(log_folder + 'data.json', 'w') as f:
-                    json.dump(match_data, f, indent=4)
+            if self.match_tracking_data['is_match_ongoing']:
+                with open(self.match_tracking_data['logs_dir'] + 'data.json', 'w') as f:
+                    json.dump(self.match_tracking_data['match_data'], f, indent=4)
 
             # Chill for a bit
             time.sleep(0.1)
 
+    def on_match_start(self):
+        """
+        This method is called when a match starts.
+        """
+
+        self.match_tracking_data['is_match_ongoing'] = True
+        self.match_tracking_data['match_data'] = {
+            'start_time': datetime.now().strftime('%Y-%m-%d_%H-%M'),
+            'processed': False
+        }
+        self.match_tracking_data['logs_dir'] = logs_dir + datetime.now().strftime('%Y-%m-%d_%H-%M') + '/'
+        os.mkdir(self.match_tracking_data['logs_dir'])
+
+    def on_match_end(self):
+        """
+        This method is called when a match ends.
+        """
+
+        self.match_tracking_data['is_match_ongoing'] = False
+        self.match_tracking_data['match_data']['end_time'] = datetime.now().strftime('%Y-%m-%d_%H-%M')
+
+        # Join summary data with legends data if present
+        if 'legends' in self.match_tracking_data['match_data'].keys():
+            if self.match_tracking_data['match_data']['player']['nickname'] != self.settings['user']['name']:
+                print('Nickname mismatch! ({} != {})'.format(self.match_tracking_data['match_data']['player']['nickname'], self.settings['user']['name']))
+            nickname2player = {}
+            nickname2player[self.match_tracking_data['match_data']['player']['nickname']] = 'player'
+            try:
+                nickname2player[self.match_tracking_data['match_data']['teammate_a']['nickname']] = 'teammate_a'
+            except:
+                pass
+            try:
+                nickname2player[self.match_tracking_data['match_data']['teammate_b']['nickname']] = 'teammate_b'
+            except:
+                pass
+            for entry in self.match_tracking_data['match_data']['legends']:
+                # Define what nickname corresponds to what teammate using levenshtein distance
+                # This is done due to possible differences in nickname recognition between summary and legend_select screens
+
+                # Get the nickname with the smallest levenshtein distance
+                nickname = min(nickname2player.keys(), key=lambda x: levenshtein_distance(x, entry['nickname']))
+
+                # Write legend data to the corresponding teammate
+                self.match_tracking_data['match_data'][nickname2player[nickname]]['legend'] = entry['legend']
+
+                # If nickname is 'Unknown', use the one from legend_select screen
+                if nickname == 'Unknown':
+                    self.match_tracking_data['match_data'][nickname2player[nickname]]['nickname'] = entry['nickname']
+        
+        # Add skin info to player if present
+        if 'skin' in self.match_tracking_data['match_data']:
+            self.match_tracking_data['match_data']['player']['skin'] = self.match_tracking_data['match_data']['skin']
+            del self.match_tracking_data['match_data']['skin']
+
+        # Remove legends data
+        del self.match_tracking_data['match_data']['legends']
+
+        self.match_tracking_data['match_data']['processed'] = True
+
+
+
+        # Save match data
+        with open(self.match_tracking_data['logs_dir'] + 'data.json', 'w') as f:
+            json.dump(self.match_tracking_data['match_data'], f, indent=4)
             
     def frame_info(self, img) -> dict:
         
@@ -285,7 +280,7 @@ class ApexLegendsAnalyser:
         return {"type": detected_frame_type, "metadata": {}}
 
 
-    def mse(self, img1, img2) -> float:
+    def __mse(self, img1, img2) -> float:
 
         "Calculates the mean squared error between two images. Sizes must match."
 
@@ -334,7 +329,7 @@ class ApexLegendsAnalyser:
             cropped_roi = cv2.blur(cropped_roi, (marker_info['processing']['blur'], marker_info['processing']['blur']))
             marker_img = cv2.blur(marker_img, (marker_info['processing']['blur'], marker_info['processing']['blur']))
 
-        return self.mse(cropped_roi, marker_img) < marker_info['match_threshold']
+        return self.__mse(cropped_roi, marker_img) < marker_info['match_threshold']
 
 
     def find_marker(self, marker, img) -> list:
