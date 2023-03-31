@@ -6,9 +6,10 @@
             "roi": [1200, 175, 64, 64],
             "processing": {
                 "grayscale": true,
-                "threshold": 230
+                "threshold": 230,
+                "bound": true
             },
-            "match_threshold": 0.01
+            "match_threshold": 0.03
         },
         {
             "name": "match-summary-key",
@@ -16,9 +17,10 @@
             "roi": [1200, 175, 64, 64],
             "processing": {
                 "grayscale": true,
-                "threshold": 230
+                "threshold": 230,
+                "bound": true
             },
-            "match_threshold": 0.01
+            "match_threshold": 0.03
         },
         {
             "name": "champions-summary-key",
@@ -26,7 +28,8 @@
             "roi": [1200, 175, 64, 64],
             "processing": {
                 "grayscale": true,
-                "threshold": 230
+                "threshold": 230,
+                "bound": true
             },
             "match_threshold": 0.03
         },

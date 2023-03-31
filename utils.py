@@ -39,6 +39,16 @@ def find_marker_coords(marker, source, roi):
 
     return coords
     
+def show_img(img):
+    cv2.imshow('image', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+def show_images(imgs):
+    for i in range(len(imgs)):
+        cv2.imshow(f'image {i}', imgs[i])
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     img = cv2.imread('.logs/2023-02-23_20-16/summary.png')

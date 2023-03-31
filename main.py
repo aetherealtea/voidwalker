@@ -15,9 +15,6 @@ import time
 
 import json
 
-import keyboard  # ! delete
-
-
 logs_dir = '.logs/'
 
 
@@ -325,6 +322,20 @@ class ApexLegendsAnalyser:
             cropped_roi = cv2.cvtColor(cropped_roi, cv2.COLOR_BGR2GRAY)
         if marker_info.get('processing', {}).get('threshold') is not None:
             _, cropped_roi = cv2.threshold(cropped_roi, marker_info['processing']['threshold'], 255, cv2.THRESH_BINARY)
+        
+        if marker_info.get('processing', {}).get('bound', False):
+            # Find bounding boxes for both markers and crop them
+            cropped_roi_coords = cv2.boundingRect(cropped_roi)
+            marker_img_coords = cv2.boundingRect(marker_img)
+            cropped_roi = cropped_roi[cropped_roi_coords[1]:cropped_roi_coords[1]+cropped_roi_coords[3], cropped_roi_coords[0]:cropped_roi_coords[0]+cropped_roi_coords[2]]
+            marker_img = marker_img[marker_img_coords[1]:marker_img_coords[1]+marker_img_coords[3], marker_img_coords[0]:marker_img_coords[0]+marker_img_coords[2]]
+            # Resize the cropped ROI to match the marker image
+            try:
+                cropped_roi = cv2.resize(cropped_roi, (marker_img.shape[1], marker_img.shape[0]))
+            except:
+                # If the cropped ROI is too small (e.g. the marker is not present), return false
+                return False
+
         if marker_info.get('processing', {}).get('blur') is not None:
             cropped_roi = cv2.blur(cropped_roi, (marker_info['processing']['blur'], marker_info['processing']['blur']))
             marker_img = cv2.blur(marker_img, (marker_info['processing']['blur'], marker_info['processing']['blur']))
@@ -673,8 +684,9 @@ class ApexLegendsAnalyser:
 def test_parser(path, frame_type):
     screen_analyser = ApexLegendsAnalyser()
     image = Image.open(path)
-    data = screen_analyser.extract(image, frame_type)
-    print(data)
+    frame_type = screen_analyser.frame_info(image)
+    # data = screen_analyser.extract(image, frame_type)
+    # print(data)
         
 
 def data_to_csv(ts_start, ts_end, match_data_path, csv_path):
@@ -722,12 +734,12 @@ def data_to_csv(ts_start, ts_end, match_data_path, csv_path):
             entry = {}
             entry['index'] = ix_counter
             entry['start_time'] = datetime.strptime(match['start_time'], '%Y-%m-%d_%H-%M')
-            entry['mode'] = match['mode']
-            entry['map'] = match['map']
+            entry['mode'] = match.get('mode', None)
+            entry['map'] = match.get('map', None)
             entry['place'] = match['global']['place']
             entry['duration'] = (datetime.strptime(match['end_time'], '%Y-%m-%d_%H-%M') - datetime.strptime(match['start_time'], '%Y-%m-%d_%H-%M')).total_seconds()/60
             for k, v in match[player].items():
-                entry[k] = v
+                entry[k] = v if v is not None else -1
             df = df.append(entry, ignore_index=True)
         ix_counter += 1
 
@@ -741,4 +753,3 @@ if __name__ == '__main__':
     screen_analyser = ApexLegendsAnalyser()
     screen_analyser.observe()
 
-    # data_to_csv('2023-03-02', '2023-03-03', '.logs/', 'matches.csv')
