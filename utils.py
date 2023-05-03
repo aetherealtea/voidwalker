@@ -14,9 +14,9 @@ def select_roi(img):
 
 def save_roi(img, roi):
     # Save selected region
-    # processed_region = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
-    # _, processed_region = cv2.threshold(processed_region, 150, 255, cv2.THRESH_BINARY)
-    cv2.imwrite('roi.png', img[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]])
+    processed_region = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2GRAY)
+    _, processed_region = cv2.threshold(processed_region, 230, 255, cv2.THRESH_BINARY)
+    cv2.imwrite('roi.png', processed_region[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]])
 
 def find_marker_coords(marker, source, roi):
     "Find marker in the region"
@@ -51,7 +51,7 @@ def show_images(imgs):
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    img = cv2.imread('.logs/2023-02-23_20-16/summary.png')
+    img = cv2.imread('C:/Users/arita/Downloads/Telegram Desktop/image_2023-04-01_11-28-53.png')
     # img, roi = img, (2544, 1421, 16, 16)
 
     # processed_region = img[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]]
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # cv2.imwrite('resources/markers/start/mode_limiter.png', processed_region)
 
     # img, roi = select_roi(img)
-    save_roi(img, (1492, 624, 228, 135))
+    save_roi(img, (1200, 175, 64, 64))
 
     # marker = cv2.imread('resources/markers/summary/skins/wattson/lightning_spirit.png')
     # source = cv2.imread('.logs/2023-02-23_20-16/summary.png')
