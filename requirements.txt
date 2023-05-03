@@ -6,3 +6,4 @@ Pillow
 pynput
 pytesseract
 levenshtein
+pywin32

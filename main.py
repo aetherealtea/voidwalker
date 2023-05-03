@@ -1,10 +1,17 @@
 from pynput import keyboard
 
 import os
+import sys
 import numpy as np
 import pandas as pd
 import cv2
-from mss import mss
+
+import win32gui
+import win32ui
+import win32con
+import win32api
+
+from ctypes import windll
 from PIL import Image
 from pytesseract import image_to_string
 
@@ -16,6 +23,12 @@ import time
 import json
 
 logs_dir = '.logs/'
+
+# Set DPI awareness
+errorCode = windll.shcore.SetProcessDpiAwareness(2)
+if errorCode != 0:
+    print('Error setting DPI awareness:', errorCode)
+    sys.exit(1)
 
 
 class ApexLegendsAnalyser:
@@ -36,12 +49,6 @@ class ApexLegendsAnalyser:
         if self.settings['user']['name'] == "":
             self.settings['user']['name'] = input('Enter your nickname: ')
             self.save_settings()
-
-        if self.settings['user']['monitor'] == {}:
-            self.settings['user']['monitor'] = self.set_monitor()
-            # Ask if user wants to save monitor settings
-            if input('Save monitor settings? (y/n) ') == 'y':
-                self.save_settings()
         
         self.monitor = self.settings['user']['monitor']
 
@@ -70,26 +77,58 @@ class ApexLegendsAnalyser:
         with open("resources/configs/user.json", "w") as f:
             json.dump(self.settings['user'], f, indent=4)
 
-    def set_monitor(self):
-
-        "Chooses the monitor to capture from."
-
-        monitors = mss().monitors
-        print('Monitors detected: {}'.format(len(monitors)))
-        for i, monitor in enumerate(monitors):
-            print('{}. {}x{}@{};{}'.format(i, monitor['width'], monitor['height'], monitor['left'], monitor['top']))
-        monitor = int(input('Choose monitor: '))
-        print('Monitor {} chosen'.format(monitor))
-        return monitors[monitor]
-
 
     def capture(self):
 
-        "Captures the screen."
+        "Captures the game window in any state, including minimized."
 
-        scrennshot = mss().grab(self.monitor)
-        img = Image.frombytes('RGB', scrennshot.size, scrennshot.bgra, 'raw', 'BGRX')
+
+        # Find the handle of the window with the given title
+        hwnd = win32gui.FindWindow(None, "Apex Legends")
+        if hwnd == 0:
+            print('Apex Legends window not found, retrying in 30 seconds...')
+            time.sleep(30)
+            return None
+        
+        # Get the window's position and size
+        left, top, right, bot = win32gui.GetWindowRect(hwnd)
+        width = right - left
+        height = bot - top
+
+        # Create a device context
+        hwndDC = win32gui.GetWindowDC(hwnd)
+        mfcDC = win32ui.CreateDCFromHandle(hwndDC)
+        saveDC = mfcDC.CreateCompatibleDC()
+
+        # Create a bitmap object
+        saveBitMap = win32ui.CreateBitmap()
+        saveBitMap.CreateCompatibleBitmap(mfcDC, width, height)
+
+        # Save the bitmap to the device context
+        saveDC.SelectObject(saveBitMap)
+
+        # Copy the device context to the bitmap
+        result = windll.user32.PrintWindow(hwnd, saveDC.GetSafeHdc(), 1)
+
+        # Convert the raw data into a format opencv can read
+        bmpinfo = saveBitMap.GetInfo()
+        bmpstr = saveBitMap.GetBitmapBits(True)
+
+        # Create an image
+        img = Image.frombuffer(
+            'RGB',
+            (bmpinfo['bmWidth'], bmpinfo['bmHeight']),
+            bmpstr, 'raw', 'BGRX', 0, 1
+        )
+
+        # Free resources
+        win32gui.DeleteObject(saveBitMap.GetHandle())
+        saveDC.DeleteDC()
+        mfcDC.DeleteDC()
+        win32gui.ReleaseDC(hwnd, hwndDC)
+        
         return img
+
 
     def observe(self):
 
@@ -98,6 +137,8 @@ class ApexLegendsAnalyser:
         while True:
             # Capture screenshot and detect screen type
             img = self.capture()
+            if img is None:
+                continue
             frame_info = self.frame_info(img)
             frame_type = frame_info['type']
             # print(frame_type)
@@ -680,6 +721,13 @@ class ApexLegendsAnalyser:
         
         return skin
 
+    def __tic(self):
+        """Returns the current time in milliseconds"""
+        return int(round(time.time() * 1000))
+    
+    def __toc(self, tic):
+        """Returns the time elapsed since tic in milliseconds"""
+        return int(round(time.time() * 1000)) - tic
 
 def test_parser(path, frame_type):
     screen_analyser = ApexLegendsAnalyser()
