@@ -131,7 +131,7 @@
         {
             "name": "legend-select-key-assault",
             "path": "resources/markers/legend_select/assault_icon.png",
-            "roi": [760, 1074, 39, 39],
+            "roi": [815, 1074, 39, 39],
             "processing": {
                 "grayscale": true,
                 "threshold": 150

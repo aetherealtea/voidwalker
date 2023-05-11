@@ -67,12 +67,12 @@ if __name__ == '__main__':
     # cv2.imwrite('resources/markers/start/mode_limiter.png', processed_region)
 
     # img, roi = select_roi(img)
-    save_roi(img, (1200, 175, 64, 64))
+    # save_roi(img, (1200, 175, 64, 64))
 
-    # marker = cv2.imread('resources/markers/summary/skins/wattson/lightning_spirit.png')
-    # source = cv2.imread('.logs/2023-02-23_20-16/summary.png')
-    # roi = (0, 0, 2560, 1440)
+    marker = cv2.imread('resources/markers/legend_select/assault_icon.png')
+    source = cv2.imread('new_legend_screen.png')
+    roi = (0, 0, 2560, 1440)
 
-    # coords = find_marker_coords(marker, source, roi)
-    # print(coords)
+    coords = find_marker_coords(marker, source, roi)
+    print(coords)
     # save_roi(img, list(coords) + [51, 44])

@@ -50,7 +50,7 @@ class ApexLegendsAnalyser:
             self.settings['user']['name'] = input('Enter your nickname: ')
             self.save_settings()
         
-        self.monitor = self.settings['user']['monitor']
+        self.monitor = self.settings['user']['monitor'] # ! Program is still resolution dependent
 
         resolution = str(self.monitor['width']) + 'x' + str(self.monitor['height'])
         path_to_settings = 'resources/configs/rois/' + resolution + '.json'
@@ -729,12 +729,12 @@ class ApexLegendsAnalyser:
         """Returns the time elapsed since tic in milliseconds"""
         return int(round(time.time() * 1000)) - tic
 
-def test_parser(path, frame_type):
+def test_parser(path):
     screen_analyser = ApexLegendsAnalyser()
     image = Image.open(path)
-    frame_type = screen_analyser.frame_info(image)
-    # data = screen_analyser.extract(image, frame_type)
-    # print(data)
+    parsed_frame_info = screen_analyser.frame_info(image)
+    data = screen_analyser.extract(image, parsed_frame_info['type'])
+    print(data)
         
 
 
@@ -743,7 +743,9 @@ def test_parser(path, frame_type):
 
 if __name__ == '__main__':
 
-    screen_analyser = ApexLegendsAnalyser()
-    screen_analyser.observe()
+    # screen_analyser = ApexLegendsAnalyser()
+    # screen_analyser.observe()
+
+    test_parser('new_legend_screen.png')
 
 
